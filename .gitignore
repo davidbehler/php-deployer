@@ -1,0 +1,9 @@
+.DS_Store
+
+releases
+shared
+logs
+.env
+/bin/*
+
+/vendor/

@@ -1,0 +1,26 @@
+{
+    "name": "davidbehler/php-deployer",
+    "type": "project",
+    "require": {
+        "symfony/process": "^6.4",
+        "symfony/console": "^6.4",
+        "symfony/var-dumper": "^6.4",
+        "symfony/finder": "^6.4",
+        "monolog/monolog": "^3.5",
+        "symfony/event-dispatcher": "^6.4",
+        "symfony/dotenv": "^6.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "PhpDeployer\\": "src/"
+        }
+    },
+    "config": {
+        "bin-dir": "bin/",
+        "discard-changes": true,
+        "allow-plugins": {
+            "composer/package-versions-deprecated": true,
+            "php-http/discovery": false
+        }
+    }
+}
