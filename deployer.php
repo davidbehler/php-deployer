@@ -1,7 +1,7 @@
-#!/usr/bin/env php
-
 <?php
 define('PROJECT_PATH', realpath(dirname(__FILE__)).'/');
+define('RELEASES_PATH', PROJECT_PATH.'releases/');
+define('LOGS_PATH', PROJECT_PATH.'logs/');
 
 chdir(PROJECT_PATH);
 
@@ -30,7 +30,7 @@ use PhpDeployer\Logging\ErrorHandler;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 
 $logFileLineFormatter = new LineFormatter(null, 'H:i:s', true);
-$logFileHandler = new StreamHandler(PROJECT_PATH.'logs/'.(new \DateTime('now'))->format('Y-m-d').'.log', Monolog\Level::Info);
+$logFileHandler = new StreamHandler(LOGS_PATH.(new \DateTime('now'))->format('Y-m-d').'.log', Monolog\Level::Info);
 $logFileHandler->setFormatter($logFileLineFormatter);
 
 $logger = new Logger('DEPLOYER');
@@ -41,7 +41,7 @@ ErrorHandler::register($logger);
 $dispatcher = new EventDispatcher;
 
 $dispatcher->addListener(ConsoleEvents::ERROR, function (ConsoleErrorEvent $event) use ($logger) {
-    $logger->log(Monolog\Level::Critical, 'Deployment failed ('.$event->getCommand()->getName().'): '.$event->getError()->getMessage());
+    $logger->log(Monolog\Level::Critical, 'Deployment failed with exception: '.$event->getError()->getMessage());
 });
 
 $consoleApplication = new Application('PHP Deployer', '1.0');

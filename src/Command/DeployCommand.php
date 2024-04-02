@@ -11,15 +11,60 @@ class DeployCommand extends BaseCommand
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        echo 'deploy start';
+        $this->log('Deployment started');
 
-        $returnCode = $this->getApplication()->doRun(new ArrayInput([
-            'command' => 'deploy:ensure-directory-structure'
-        ]), $output);
+        $now = new \DateTime('now', new \DateTimeZone('UTC'));
 
-        dump($returnCode);
+        $releasePath = RELEASES_PATH.'release-'.$now->format('Y-m-d').'-'.$now->getTimestamp().'/';
 
-        echo 'deploy end';
+        $commandsToRun = [
+            'deploy:ensure-directory-structure' => [
+                'options' => [
+                    'releasePath' => $releasePath
+                ]
+            ],
+            'deploy:clone-repository' => [
+                'options' => [
+                    'releasePath' => $releasePath
+                ]
+            ],
+            'deploy:compare-version' => [
+                'options' => [
+                    'releasePath' => $releasePath
+                ],
+                'nonFailureStopCode' => 2
+            ]
+        ];
+
+        try {
+            foreach($commandsToRun as $command => $config) {
+                $options = isset($config['options']) ? $config['options'] : [];
+
+                $commandConfig = [
+                    'command' => $command
+                ];
+
+                foreach($options as $name => $value) {
+                    $commandConfig['--'.$name] = $value;
+                }
+
+                $returnCode = $this->getApplication()->doRun(new ArrayInput($commandConfig), $output);
+
+                if(isset($config['nonFailureStopCode']) and $config['nonFailureStopCode'] == $returnCode) {
+                    $this->log('Non-failure stop of deployment triggered: '.$command);
+
+                    break;
+                }
+
+                if($returnCode != 0) {
+                    throw new \Exception($command);
+                }
+            }
+
+            $this->log('Deployment ended');
+        } catch (\Exception $e) {
+            $this->log('Deployment failed running '.$e->getMessage());
+        }
 
         return 0;
     }
