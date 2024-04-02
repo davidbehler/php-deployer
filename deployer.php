@@ -27,6 +27,7 @@ use Monolog\Handler\StreamHandler;
 use Monolog\Formatter\LineFormatter;
 use PhpDeployer\Command\DeployCommand;
 use PhpDeployer\Logging\ErrorHandler;
+use Symfony\Component\Dotenv\Dotenv;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 
 $logFileLineFormatter = new LineFormatter(null, 'H:i:s', true);
@@ -35,6 +36,9 @@ $logFileHandler->setFormatter($logFileLineFormatter);
 
 $logger = new Logger('DEPLOYER');
 $logger->pushHandler($logFileHandler);
+
+$dotenv = new Dotenv();
+$dotenv->load(PROJECT_PATH.'.env');
 
 ErrorHandler::register($logger);
 

@@ -5,6 +5,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
 use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Filesystem\Filesystem;
 
 class EnsureDirectoryStructureCommand extends BaseCommand
 {
@@ -19,7 +20,19 @@ class EnsureDirectoryStructureCommand extends BaseCommand
     {
         $releasePath = $input->getOption('releasePath');
 
-        $this->log('Ensure '.$releasePath.' exists');
+        $filesystem = new Filesystem;
+
+        $this->log('Ensure directory structure at '.$releasePath.' exists');
+
+        try {
+            $filesystem->mkdir($releasePath);
+        } catch (\Exception $e) {
+            $this->log('Could not create directory: '.$e->getMessage());
+
+            return 1;
+        }
+
+        $this->log('Directory created');
 
         return 0;
     }
