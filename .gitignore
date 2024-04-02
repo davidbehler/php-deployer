@@ -1,9 +1,11 @@
 .DS_Store
 
-releases
-shared
-logs
+/releases
+/shared
+/logs
 .env
 /bin/*
 
 /vendor/
+
+releases.json
