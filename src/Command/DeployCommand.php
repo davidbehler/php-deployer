@@ -1,6 +1,7 @@
 <?php
 namespace PhpDeployer\Command;
 
+use PhpDeployer\Service\ReleaseManager;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -17,19 +18,6 @@ class DeployCommand extends BaseCommand
         $now = new \DateTime('now', new \DateTimeZone('UTC'));
 
         $targetReleasePath = RELEASES_PATH.'release-'.$now->format('Y-m-d').'-'.$now->getTimestamp().'/';
-
-        $filesystem = new Filesystem;
-
-        $releasesConfigPath = PROJECT_PATH.'releases.json';
-
-        if($filesystem->exists($releasesConfigPath)) {
-            $releasesConfig = json_decode(file_get_contents($releasesConfigPath), true);
-        } else {
-            $releasesConfig = [];
-        }
-
-        dump($releasesConfig);
-        exit();
 
         $commandsToRun = [
             'deploy:ensure-directory-structure' => [
@@ -71,6 +59,11 @@ class DeployCommand extends BaseCommand
 
                 if(isset($config['nonFailureStopCode']) and $config['nonFailureStopCode'] == $returnCode) {
                     $this->log('Non-failure stop of deployment triggered: '.$command);
+
+                    $this->getApplication()->doRun(new ArrayInput([
+                        'command' => 'deploy:cleanup-release',
+                        '--releasePath' => $targetReleasePath
+                    ]), $output);
 
                     break;
                 }

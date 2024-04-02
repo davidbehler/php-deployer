@@ -6,7 +6,7 @@ use Symfony\Component\Console\Command\Command;
 
 class BaseCommand extends Command
 {
-    private LoggerInterface $logger;
+    protected LoggerInterface $logger;
 
     public function __construct(string $name = null, LoggerInterface $logger)
     {

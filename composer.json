@@ -2,7 +2,6 @@
     "name": "davidbehler/php-deployer",
     "type": "project",
     "require": {
-        "symfony/process": "^6.4",
         "symfony/console": "^6.4",
         "symfony/var-dumper": "^6.4",
         "symfony/finder": "^6.4",
