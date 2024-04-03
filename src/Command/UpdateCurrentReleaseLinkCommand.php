@@ -1,7 +1,6 @@
 <?php
 namespace PhpDeployer\Command;
 
-use PhpDeployer\Service\ReleaseManager;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
@@ -13,24 +12,20 @@ class UpdateCurrentReleaseLinkCommand extends BaseCommand
 
     protected function configure(): void
     {
-        $this->addOption('releasePath', null, InputOption::VALUE_REQUIRED, 'Release path', null);
+        $this->addOption('deploymentIdentifier', null, InputOption::VALUE_REQUIRED, 'Deployment identifier', null);
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $releasePath = $input->getOption('releasePath');
+        $deploymentIdentifier = $input->getOption('deploymentIdentifier');
 
-        $releaseManager = new ReleaseManager($this->logger, PROJECT_PATH);
-
-        $releasesConfig = $releaseManager->getConfig();
-
-        $releases = isset($releasesConfig['releases']) ? $releasesConfig['releases'] : [];
-
-        $releases[] = $releasePath;
-
-        $releaseManager->writeConfig($releasePath, $releases);
+        $this->releaseManager->setCurrentReleaseIdentifier($deploymentIdentifier);
 
         $this->log('releases.json update');
+
+        $this->releaseManager->updateCurrentLink($deploymentIdentifier);
+
+        $this->log('current link update');
 
         return 0;
     }

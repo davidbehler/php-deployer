@@ -1,11 +1,9 @@
 <?php
 namespace PhpDeployer\Command;
 
-use PhpDeployer\Service\ReleaseManager;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Filesystem\Filesystem;
 
 class DeployCommand extends BaseCommand
 {
@@ -13,32 +11,40 @@ class DeployCommand extends BaseCommand
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $this->log('Deployment started');
+        $currentDeploymentIdentifier = $this->releaseManager->getCurrentDeploymentIdentifier();
 
-        $now = new \DateTime('now', new \DateTimeZone('UTC'));
+        if($currentDeploymentIdentifier) {
+            $this->log('Deployment could not be started because another deployment is currently in progress: '.$currentDeploymentIdentifier);
 
-        $targetReleasePath = RELEASES_PATH.'release-'.$now->format('Y-m-d').'-'.$now->getTimestamp().'/';
+            return 0;
+        }
+
+        $deploymentIdentifier = $this->releaseManager->getDeploymentIdentifier();
+
+        $this->log('Deployment started ('.$deploymentIdentifier.')');
+
+        $this->releaseManager->setCurrentDeploymentIdentifier($deploymentIdentifier);
 
         $commandsToRun = [
             'deploy:ensure-directory-structure' => [
                 'options' => [
-                    'releasePath' => $targetReleasePath
+                    'deploymentIdentifier' => $deploymentIdentifier
                 ]
             ],
             'deploy:clone-repository' => [
                 'options' => [
-                    'releasePath' => $targetReleasePath
+                    'deploymentIdentifier' => $deploymentIdentifier
                 ]
             ],
             'deploy:compare-version' => [
                 'options' => [
-                    'releasePath' => $targetReleasePath
+                    'deploymentIdentifier' => $deploymentIdentifier
                 ],
                 'nonFailureStopCode' => 2
             ],
             'deploy:update-current-release-link' => [
                 'options' => [
-                    'releasePath' => $targetReleasePath
+                    'deploymentIdentifier' => $deploymentIdentifier
                 ],
             ]
         ];
@@ -62,7 +68,7 @@ class DeployCommand extends BaseCommand
 
                     $this->getApplication()->doRun(new ArrayInput([
                         'command' => 'deploy:cleanup-release',
-                        '--releasePath' => $targetReleasePath
+                        '--deploymentIdentifier' => $deploymentIdentifier
                     ]), $output);
 
                     break;
@@ -73,9 +79,13 @@ class DeployCommand extends BaseCommand
                 }
             }
 
-            $this->log('Deployment ended');
+            $this->releaseManager->clearCurrentDeploymentIdentifier();
+
+            $this->log('Deployment ended ('.$deploymentIdentifier.')');
         } catch (\Exception $e) {
-            $this->log('Deployment failed running '.$e->getMessage());
+            $this->releaseManager->clearCurrentDeploymentIdentifier();
+
+            $this->log('Deployment failed ('.$deploymentIdentifier.'): '.$e->getMessage());
         }
 
         return 0;

@@ -25,8 +25,8 @@ use Symfony\Component\Finder\Finder;
 use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
 use Monolog\Formatter\LineFormatter;
-use PhpDeployer\Command\DeployCommand;
 use PhpDeployer\Logging\ErrorHandler;
+use PhpDeployer\Service\ReleaseManager;
 use Symfony\Component\Dotenv\Dotenv;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 
@@ -39,6 +39,8 @@ $logger->pushHandler($logFileHandler);
 
 $dotenv = new Dotenv();
 $dotenv->load(PROJECT_PATH.'.env');
+
+$releaseManager = new ReleaseManager($logger, PROJECT_PATH);
 
 ErrorHandler::register($logger);
 
@@ -60,14 +62,12 @@ if ($finder->hasResults()) {
         $className = 'PhpDeployer\Command\\'.$file->getFilenameWithoutExtension();
 
         if(class_exists($className)) {
-            $consoleApplication->add(new $className(null, $logger));
+            $consoleApplication->add(new $className(null, $logger, $releaseManager));
         } else {
             $logger->log(Monolog\Level::Critical, 'Could not load command from path: '.$file->getRealPath());
         }
     }
 }
-
-$consoleApplication->setDefaultCommand((new DeployCommand(null, $logger))->getName());
 
 $exitCode = $consoleApplication->run();
 

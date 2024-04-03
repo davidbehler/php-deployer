@@ -13,12 +13,12 @@ class EnsureDirectoryStructureCommand extends BaseCommand
 
     protected function configure(): void
     {
-        $this->addOption('releasePath', null, InputOption::VALUE_REQUIRED, 'Release path', null);
+        $this->addOption('deploymentIdentifier', null, InputOption::VALUE_REQUIRED, 'Deployment identifier', null);
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $releasePath = $input->getOption('releasePath');
+        $releasePath = $this->releaseManager->getReleasePath($input->getOption('deploymentIdentifier'));
 
         $filesystem = new Filesystem;
 
