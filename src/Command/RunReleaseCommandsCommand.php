@@ -23,6 +23,7 @@ class RunReleaseCommandsCommand extends BaseCommand
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $releasePath = $this->releaseManager->getReleasePath($input->getOption('deploymentIdentifier'));
+        $sharedPath = PROJECT_PATH.'shared/';
         $deploymentOwner = $input->getOption('deploymentOwner');
         $deploymentState = $input->getOption('deploymentState');
 
@@ -40,7 +41,7 @@ class RunReleaseCommandsCommand extends BaseCommand
                     'state' => 'post-clone'
                 ],
                 'ensure-directories-exist' => [
-                    'command' => 'php #releasePath#bin/console deployment:ensure-directories-exist',
+                    'command' => 'php #releasePath#bin/console deployment:ensure-directories-exist --sharedPath=#sharedPath#',
                     'user' => '#deploymentUser#',
                     'state' => 'post-clone'
                 ],
@@ -91,7 +92,7 @@ class RunReleaseCommandsCommand extends BaseCommand
                     $commandPrefix = 'sudo -u '.$commandConfig['user'].' -H';
                 }
 
-                $commandToRun = str_replace('#releasePath#', escapeshellarg($releasePath), $commandConfig['command']);
+                $commandToRun = str_replace(['#releasePath#', '#sharedPath#'], [escapeshellarg($releasePath), escapeshellarg($sharedPath)], $commandConfig['command']);
 
                 if($commandPrefix) {
                     $commandToRun = $commandPrefix.' '.$commandToRun;
