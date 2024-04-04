@@ -26,51 +26,69 @@ class DeployCommand extends BaseCommand
         $this->releaseManager->setCurrentDeploymentIdentifier($deploymentIdentifier);
 
         $commandsToRun = [
-            'deploy:ensure-directory-structure' => [
+             [
+                'command' => 'deploy:ensure-directory-structure',
                 'options' => [
                     'deploymentIdentifier' => $deploymentIdentifier
                 ]
             ],
-            'deploy:clone-repository' => [
+            [
+                'command' => 'deploy:clone-repository',
                 'options' => [
                     'deploymentIdentifier' => $deploymentIdentifier,
                     'deploymentUser' => $_ENV['DEPLOYMENT_USER']
                 ]
             ],
-            'deploy:compare-version' => [
+            [
+                'command' => 'deploy:compare-version',
                 'options' => [
                     'deploymentIdentifier' => $deploymentIdentifier
                 ],
                 'nonFailureStopCode' => 2
             ],
-            'deploy:ensure-proper-owner' => [
+            [
+                'command' => 'deploy:ensure-proper-owner',
                 'options' => [
                     'deploymentIdentifier' => $deploymentIdentifier,
                     'deploymentOwner' => $_ENV['DEPLOYMENT_USER']
                 ],
             ],
-            'deploy:run-release-commands' => [
+            [
+                'command' => 'deploy:run-release-commands',
+                'options' => [
+                    'deploymentIdentifier' => $deploymentIdentifier,
+                    'deploymentOwner' => $_ENV['DEPLOYMENT_USER'],
+                    'deploymentState' => 'post-clone'
+                ],
+            ],
+            [
+                'command' => 'deploy:ensure-proper-owner',
                 'options' => [
                     'deploymentIdentifier' => $deploymentIdentifier,
                     'deploymentOwner' => $_ENV['DEPLOYMENT_USER']
                 ],
             ],
-            'deploy:ensure-proper-owner' => [
-                'options' => [
-                    'deploymentIdentifier' => $deploymentIdentifier,
-                    'deploymentOwner' => $_ENV['DEPLOYMENT_USER']
-                ],
-            ],
-            'deploy:update-current-release-link' => [
+            [
+                'command' => 'deploy:update-current-release-link',
                 'options' => [
                     'deploymentIdentifier' => $deploymentIdentifier
                 ],
-            ]
+            ],
+            [
+                'command' => 'deploy:run-release-commands',
+                'options' => [
+                    'deploymentIdentifier' => $deploymentIdentifier,
+                    'deploymentOwner' => $_ENV['DEPLOYMENT_USER'],
+                    'deploymentState' => 'post-update-link'
+                ],
+            ],
         ];
 
         try {
-            foreach($commandsToRun as $command => $config) {
+            foreach($commandsToRun as $config) {
                 $options = isset($config['options']) ? $config['options'] : [];
+
+                $command = $config['command'];
 
                 $commandConfig = [
                     'command' => $command

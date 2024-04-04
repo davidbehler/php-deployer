@@ -7,6 +7,8 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Filesystem\Filesystem;
 
+use function PHPSTORM_META\map;
+
 class RunReleaseCommandsCommand extends BaseCommand
 {
     protected static $defaultName = 'deploy:run-release-commands';
@@ -15,12 +17,14 @@ class RunReleaseCommandsCommand extends BaseCommand
     {
         $this->addOption('deploymentIdentifier', null, InputOption::VALUE_REQUIRED, 'Deployment identifier', null);
         $this->addOption('deploymentOwner', null, InputOption::VALUE_REQUIRED, 'Deployment owner', null);
+        $this->addOption('deploymentState', null, InputOption::VALUE_REQUIRED, 'Deployment state', null);
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $releasePath = $this->releaseManager->getReleasePath($input->getOption('deploymentIdentifier'));
         $deploymentOwner = $input->getOption('deploymentOwner');
+        $deploymentState = $input->getOption('deploymentState');
 
         $commandsJsonPath = $releasePath.'bin/deployment-commands.json';
 
@@ -31,38 +35,82 @@ class RunReleaseCommandsCommand extends BaseCommand
         } else {
             $commands = [
                 'composer-install' => [
-                    'command' => 'composer install --working-dir=#releasePath#',
-                    'user' => '#deploymentUser#'
+                    'command' => 'composer install --working-dir=#releasePath# --no-dev --no-interaction --optimize-autoloader',
+                    'user' => '#deploymentUser#',
+                    'state' => 'post-clone'
+                ],
+                'ensure-directories-exist' => [
+                    'command' => 'php #releasePath#bin/console deployment:ensure-directories-exist',
+                    'user' => '#deploymentUser#',
+                    'state' => 'post-clone'
+                ],
+                'run-migrations' => [
+                    'command' => 'php #releasePath#bin/phpmig migrate',
+                    'user' => '#deploymentUser#',
+                    'state' => 'post-clone'
+                ],
+                'download-certificates' => [
+                    'command' => 'php #releasePath#bin/console misc:download-cacert',
+                    'user' => '#deploymentUser#',
+                    'state' => 'post-clone'
+                ],
+                'update-geo-ip-database' => [
+                    'command' => 'php #releasePath#bin/console misc:update-geo-ip-database',
+                    'user' => '#deploymentUser#',
+                    'state' => 'post-clone'
+                ],
+                'generate-sitemap' => [
+                    'command' => 'php #releasePath#bin/console seo:generate-sitemap',
+                    'user' => '#deploymentUser#',
+                    'state' => 'post-clone'
+                ],
+                'update-assets-cache' => [
+                    'command' => 'php #releasePath#bin/console assets:update-cache-control',
+                    'user' => '#deploymentUser#',
+                    'state' => 'post-clone'
+                ],
+                'update-user-listing-option-cache' => [
+                    'command' => 'php #releasePath#bin/console misc:update-listing-filter-options-cache',
+                    'user' => '#deploymentUser#',
+                    'state' => 'post-clone'
+                ],
+                'reload-php' => [
+                    'command' => 'service php8.1-fpm reload',
+                    'state' => 'post-update-link'
                 ]
             ];
         }
 
         foreach($commands as $commandLabel => $commandConfig) {
-            $commandPrefix = '';
+            if($commandConfig['state'] == $deploymentState) {
+                $commandPrefix = '';
 
-            if(isset($commandConfig['user']) and $commandConfig['user']) {
-                $commandConfig['user'] = str_replace('#deploymentUser#', $deploymentOwner, $commandConfig['user']);
+                if(isset($commandConfig['user']) and $commandConfig['user']) {
+                    $commandConfig['user'] = str_replace('#deploymentUser#', $deploymentOwner, $commandConfig['user']);
 
-                $commandPrefix = 'sudo -u '.$commandConfig['user'].' -H';
-            }
+                    $commandPrefix = 'sudo -u '.$commandConfig['user'].' -H';
+                }
 
-            $commandToRun = str_replace('#releasePath#', escapeshellarg($releasePath), $commandConfig['command']);
+                $commandToRun = str_replace('#releasePath#', escapeshellarg($releasePath), $commandConfig['command']);
 
-            if($commandPrefix) {
-                $commandToRun = $commandPrefix.' '.$commandToRun;
-            }
+                if($commandPrefix) {
+                    $commandToRun = $commandPrefix.' '.$commandToRun;
+                }
 
-            $commandToRun .= ' 2>&1';
+                $commandToRun .= ' 2>&1';
 
-            $output = null;
-            $resultCode = null;
+                $output = null;
+                $resultCode = null;
 
-            exec($commandToRun, $output, $resultCode);
+                $this->log('Running release command: '.$commandLabel);
 
-            if($resultCode > 0) {
-                $this->log('Could not run release command ('.$commandLabel.'): '.json_encode($output));
+                exec($commandToRun, $output, $resultCode);
 
-                return $resultCode;
+                if($resultCode > 0) {
+                    $this->log('Release command failed ('.$commandLabel.'): '.json_encode($output));
+
+                    return $resultCode;
+                }
             }
         }
 
