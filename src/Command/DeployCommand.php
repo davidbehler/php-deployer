@@ -33,7 +33,8 @@ class DeployCommand extends BaseCommand
             ],
             'deploy:clone-repository' => [
                 'options' => [
-                    'deploymentIdentifier' => $deploymentIdentifier
+                    'deploymentIdentifier' => $deploymentIdentifier,
+                    'deploymentUser' => $_ENV['DEPLOYMENT_USER']
                 ]
             ],
             'deploy:compare-version' => [
@@ -41,6 +42,24 @@ class DeployCommand extends BaseCommand
                     'deploymentIdentifier' => $deploymentIdentifier
                 ],
                 'nonFailureStopCode' => 2
+            ],
+            'deploy:ensure-proper-owner' => [
+                'options' => [
+                    'deploymentIdentifier' => $deploymentIdentifier,
+                    'deploymentOwner' => $_ENV['DEPLOYMENT_USER']
+                ],
+            ],
+            'deploy:run-release-commands' => [
+                'options' => [
+                    'deploymentIdentifier' => $deploymentIdentifier,
+                    'deploymentOwner' => $_ENV['DEPLOYMENT_USER']
+                ],
+            ],
+            'deploy:ensure-proper-owner' => [
+                'options' => [
+                    'deploymentIdentifier' => $deploymentIdentifier,
+                    'deploymentOwner' => $_ENV['DEPLOYMENT_USER']
+                ],
             ],
             'deploy:update-current-release-link' => [
                 'options' => [
@@ -61,15 +80,14 @@ class DeployCommand extends BaseCommand
                     $commandConfig['--'.$name] = $value;
                 }
 
+                $this->log('Running '.$command);
+
                 $returnCode = $this->getApplication()->doRun(new ArrayInput($commandConfig), $output);
 
                 if(isset($config['nonFailureStopCode']) and $config['nonFailureStopCode'] == $returnCode) {
                     $this->log('Non-failure stop of deployment triggered: '.$command);
 
-                    $this->getApplication()->doRun(new ArrayInput([
-                        'command' => 'deploy:cleanup-release',
-                        '--deploymentIdentifier' => $deploymentIdentifier
-                    ]), $output);
+                    $this->releaseManager->deleteRelease($deploymentIdentifier);
 
                     break;
                 }
@@ -84,6 +102,8 @@ class DeployCommand extends BaseCommand
             $this->log('Deployment ended ('.$deploymentIdentifier.')');
         } catch (\Exception $e) {
             $this->releaseManager->clearCurrentDeploymentIdentifier();
+
+            $this->releaseManager->deleteRelease($deploymentIdentifier);
 
             $this->log('Deployment failed ('.$deploymentIdentifier.'): '.$e->getMessage());
         }

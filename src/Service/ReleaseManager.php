@@ -103,7 +103,7 @@ class ReleaseManager
         $config = $this->getConfig();
 
         if(isset($config['current']) and $config['current']) {
-            return $this->getReleasePath($config['current']);
+            return $config['current'];
         }
 
         return null;
@@ -147,5 +147,16 @@ class ReleaseManager
         }
 
         return null;
+    }
+
+    public function deleteRelease(string $releaseIdentifier)
+    {
+        $releasePath = $this->getReleasePath($releaseIdentifier);
+
+        $filesystem = new Filesystem;
+
+        $this->logger->log(\Monolog\Level::Info, 'Deleting release: '.$releaseIdentifier);
+
+        $filesystem->remove($releasePath);
     }
 }

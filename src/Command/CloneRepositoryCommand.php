@@ -13,15 +13,17 @@ class CloneRepositoryCommand extends BaseCommand
     protected function configure(): void
     {
         $this->addOption('deploymentIdentifier', null, InputOption::VALUE_REQUIRED, 'Deployment identifier', null);
+        $this->addOption('deploymentUser', null, InputOption::VALUE_REQUIRED, 'Deployment user', null);
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
+        $deploymentUser = $input->getOption('deploymentUser');
         $releasePath = $this->releaseManager->getReleasePath($input->getOption('deploymentIdentifier'));
 
         $this->log('Clone repository into '.$releasePath);
 
-        $commandToRun = 'sudo -u '.$_ENV['DEPLOYMENT_USER'].' -H git clone --depth 1 '.$_ENV['REPOSITORY'].' '.escapeshellarg($releasePath).' 2>&1';
+        $commandToRun = 'sudo -u '.$deploymentUser.' -H git clone --depth 1 '.$_ENV['REPOSITORY'].' '.escapeshellarg($releasePath).' 2>&1';
 
         $output = null;
         $resultCode = null;
