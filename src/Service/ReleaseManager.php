@@ -33,17 +33,18 @@ class ReleaseManager
         return [];
     }
 
-    public function setCurrentReleaseIdentifier(string $currentReleaseIdentifier)
+    public function setCurrentReleaseIdentifier(string $releaseIdentifier)
     {
         $config = $this->getConfig();
 
-        $config['current'] = $currentReleaseIdentifier;
+        $config['current'] = $releaseIdentifier;
 
         $releases = isset($config['releases']) ? $config['releases'] : [];
 
-        $releases[$currentReleaseIdentifier] = [
-            'path' => $this->getReleasePath($currentReleaseIdentifier),
-            'releasedOn' => (new \DateTime('now'))->format('Y-m-d H:i:s')
+        $releases[$releaseIdentifier] = [
+            'path' => $this->getReleasePath($releaseIdentifier),
+            'releasedOn' => (new \DateTime('now'))->format('Y-m-d H:i:s'),
+            'commitId' => $this->getReleaseCommitId($releaseIdentifier)
         ];
 
         $config['releases'] = $releases;
@@ -124,5 +125,27 @@ class ReleaseManager
         $filesystem = new Filesystem;
 
         $filesystem->symlink($this->getReleasePath($releaseIdentifier), 'releases/current');
+    }
+
+    public function getReleaseCommitId(string $releaseIdentifier): ?string
+    {
+        $releasePath = $this->getReleasePath($releaseIdentifier);
+
+        $filesystem = new Filesystem;
+
+        if($filesystem->exists($releasePath)) {
+            $commandToRun = 'git --git-dir '.escapeshellarg($releasePath.'.git').' rev-parse HEAD 2>&1';
+
+            $output = null;
+            $resultCode = null;
+
+            exec($commandToRun, $output, $resultCode);
+
+            if($resultCode == 0) {
+                return reset($output);
+            }
+        }
+
+        return null;
     }
 }
