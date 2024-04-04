@@ -7,6 +7,7 @@
 /bin/*
 
 /vendor/
+/shared/
 
 releases.json
 current-deployment
