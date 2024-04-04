@@ -111,6 +111,8 @@ class RunReleaseCommandsCommand extends BaseCommand
                     $this->log('Release command failed ('.$commandLabel.'): '.json_encode($output));
 
                     return $resultCode;
+                } else {
+                    $this->log('Completed release command: '.$commandLabel);
                 }
             }
         }
